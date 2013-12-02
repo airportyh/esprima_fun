@@ -4,7 +4,7 @@ var estraverse = require('estraverse');
 
 var filename = process.argv[2];
 console.log('Processing', filename);
-var ast = esprima.parse(fs.readFileSync(filename));
+var ast = esprima.parse(fs.readFileSync(filename), {loc: true});
 var scopeChain = [];
 var assignments = [];
 
@@ -22,7 +22,7 @@ function enter(node){
     currentScope.push(node.id.name);
   }
   if (node.type === 'AssignmentExpression'){
-    assignments.push(node.left.name);
+    assignments.push(node);
   }
 }
 
@@ -46,8 +46,11 @@ function isVarDefined(varname, scopeChain){
 
 function checkForLeaks(assignments, scopeChain){
   for (var i = 0; i < assignments.length; i++){
-    if (!isVarDefined(assignments[i], scopeChain)){
-      console.log('Detected leaked global variable:', assignments[i]);
+    var assignment = assignments[i];
+    var varname = assignment.left.name;
+    if (!isVarDefined(varname, scopeChain)){
+      console.log('Leaked global', varname, 
+        'on line', assignment.loc.start.line);
     }
   }
 }
